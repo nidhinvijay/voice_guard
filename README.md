@@ -1,157 +1,127 @@
-# 🎙️ VoiceGuard: Real-Time Speech Analysis & Moderation
+🎙️ VoiceGuard: Real-Time Speech Analysis & Moderation
+VoiceGuard is a web application built with Django and Google Cloud that provides real-time transcription and moderation of speech to foster respectful communication.
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/Django-4.2-green)](https://www.djangoproject.com/)
+📖 About The Project
+VoiceGuard is designed to create a safer digital environment by analyzing spoken words in near real-time. It accepts audio input, transcribes it using Google Cloud's high-performance streaming API, and then uses a hybrid AI approach to moderate the content. Disrespectful or toxic language is flagged, and a polite alternative is suggested by a generative AI.
 
-VoiceGuard is a **web application** built with Django and Google Cloud that provides **real-time transcription and moderation** of speech to foster respectful and safe communication.
+The project features two modes: a single-file upload for analyzing pre-recorded audio and a high-performance real-time mode for live conversations.
 
----
+Key Features
+High-Performance Real-Time Transcription using Google Cloud Speech-to-Text.
 
-## 📖 Table of Contents
+Intelligent Content Moderation with a hybrid approach:
 
-- [About The Project](#about-the-project)  
-- [Key Features](#key-features)  
-- [Tech Stack & Architecture](#tech-stack--architecture)  
-- [Architecture Diagram](#architecture-diagram)  
-- [Getting Started](#getting-started)  
-  - [Prerequisites](#prerequisites)  
-  - [Installation](#installation)  
-- [Usage](#usage)  
+Fast, initial screening using Google's Perspective API.
 
----
+Creative, rephrased suggestions for flagged content using Google's Gemini API.
 
-## 📖 About The Project
+Single-File Analysis for uploaded or browser-recorded audio.
 
-VoiceGuard analyzes spoken words in **near real-time**, transcribes them using **Google Cloud Speech-to-Text**, and applies a **hybrid AI moderation** approach:
+Asynchronous Backend built with Django Channels and Daphne for handling concurrent WebSocket connections.
 
-- Flag disrespectful or toxic language.
-- Suggest polite alternatives using generative AI.
+Clean, Interactive UI for displaying live results and moderation alerts.
 
-It supports **two modes**:
+🛠️ Tech Stack & Architecture
+This project uses a modern, production-grade architecture that separates transcription from moderation for maximum performance.
 
-1. **Single-File Upload:** For pre-recorded audio.  
-2. **Real-Time Mode:** For live conversations via microphone.
+Backend: Django, Django Channels, Daphne
 
----
+Frontend: HTML, CSS, JavaScript, Bootstrap
 
-## Key Features
+Speech-to-Text: Google Cloud Speech-to-Text (Streaming API)
 
-- **High-Performance Real-Time Transcription** via Google Cloud Speech-to-Text.  
-- **Intelligent Content Moderation**:
-  - Fast initial screening with Google Perspective API.  
-  - Creative rephrased suggestions via Google Gemini API.  
-- **Single-File Analysis** for uploaded or recorded audio.  
-- **Asynchronous Backend** with Django Channels & Daphne for WebSocket concurrency.  
-- **Interactive UI** for live transcription and moderation alerts.  
+Moderation: Google Perspective API, Google Gemini API
 
----
+Database: SQLite (for development)
 
-## Tech Stack & Architecture
-
-- **Backend:** Django, Django Channels, Daphne  
-- **Frontend:** HTML, CSS, JavaScript, Bootstrap  
-- **Speech-to-Text:** Google Cloud Speech-to-Text (Streaming API)  
-- **Moderation:** Google Perspective API, Google Gemini API  
-- **Database:** SQLite (development)  
-
----
-
-## Architecture Diagram
-
-vbnet
-Copy code
-          +----------------------------+
-          |       User's Browser       |
-          +-------------^--------------+
-                        |
-       (Audio Stream via WebSocket)
-                        |
-          +-------------v--------------+
-          | Google Cloud Speech-to-Text|  <-- (1. Transcription)
-          +-------------^--------------+
-                        |
-(Final Transcript via JavaScript)
-|
+Architecture Diagram
+              +----------------------------+
+              |       User's Browser       |
+              +-------------^--------------+
+                            |
+           (Audio Stream via WebSocket)
+                            |
+              +-------------v--------------+
+              | Google Cloud Speech-to-Text|  <-- (1. Transcription)
+              +-------------^--------------+
+                            |
+   (Final Transcript via JavaScript)
+                            |
 +---------------------------v----------------------------+
-| Django Application |
+|                  Your Django Application               |
 | +----------------------------------------------------+ |
-| | WebSocket (Channels) -> Moderation Service (Python)| | <-- (2. Moderation)
+| | WebSocket (Channels) -> Moderation Service (Python)| |  <-- (2. Moderation)
 | +----------------------^-----------------------------+ |
-| | |
-| (API Call to Perspective & Gemini) |
-| | |
+|                        |                               |
+| (API Call to Perspective & Gemini)                     |
+|                        |                               |
 +------------------------|-------------------------------+
-|
-(Final Result via WebSocket)
-|
-+----------v---------------+
-| User's Browser |
-+--------------------------+
+                         |
+           (Final Result via WebSocket)
+                         |
+              +----------v---------------+
+              |      User's Browser      |
+              +--------------------------+
+🚀 Getting Started
+To get a local copy up and running, follow these simple steps.
 
-yaml
-Copy code
+Prerequisites
+Python 3.8+
 
----
+Git
 
-## 🚀 Getting Started
+Installation
+Clone the repository:
 
-### Prerequisites
+Bash
 
-- Python 3.8+  
-- Git  
-
-### Installation
-
-1. **Clone the repository:**
-
-```bash
 git clone https://github.com/your-username/voiceguard_project.git
 cd voiceguard_project
 Create and activate a virtual environment:
 
-bash
-Copy code
-# Windows
+Bash
+
+# On Windows
 python -m venv venv
 venv\Scripts\activate
 
-# macOS/Linux
+# On macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
-Install dependencies:
+Install the required packages:
 
-bash
-Copy code
+Bash
+
 pip install -r requirements.txt
-Configure environment variables:
+Set up your environment variables:
 
-Create a .env file in the project root.
+Create a file named .env in the project root.
 
-Enable Cloud Speech-to-Text API and Perspective Comment Analyzer API in Google Cloud.
+Create a Google Cloud project, enable the "Cloud Speech-to-Text API" and "Perspective Comment Analyzer API", and create a Service Account with a JSON key.
 
-Create a Service Account and download the JSON key (gcloud-credentials.json).
+Place the downloaded key file in the project root (e.g., gcloud-credentials.json).
 
-Add credentials to .env:
+Add your credentials to the .env file:
 
-env
-Copy code
+Code snippet
+
 GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
 PERSPECTIVE_API_KEY="YOUR_PERSPECTIVE_API_KEY_HERE"
+# Use the full, absolute path to your key file
 GOOGLE_APPLICATION_CREDENTIALS="C:/path/to/your/project/gcloud-credentials.json"
-Run migrations:
+Run database migrations:
 
-bash
-Copy code
+Bash
+
 python manage.py migrate
-Start the ASGI server:
+Run the ASGI server:
 
-bash
-Copy code
+Bash
+
 daphne voiceguard.asgi:application
-Access the app at http://127.0.0.1:8000.
+The application will be available at http://127.0.0.1:8000.
 
-Usage
-Single-File Mode: Upload or record audio on the homepage and click "Analyze".
+usage
+Single-File Mode: Navigate to the homepage, upload an audio file or use the record button, and click "Analyze."
 
-Real-Time Mode: Go to /realtime, click "Start Listening", and allow microphone access for live transcription and moderation.
-
+Real-Time Mode: Navigate to the /realtime page, click "Start Listening," and allow microphone access. The application will transcribe and moderate your speech as you talk.
