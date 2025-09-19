@@ -9,7 +9,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
+CSRF_TRUSTED_ORIGINS = [
+    'https://voice-guard.onrender.com',
+]
 
 INSTALLED_APPS = [
     'daphne',
