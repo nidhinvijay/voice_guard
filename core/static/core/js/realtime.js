@@ -15,7 +15,10 @@ startBtn.addEventListener('click', () => {
     alertsContainer.innerHTML = '';
     statusDiv.textContent = 'Status: Connecting...';
 
-    socket = new WebSocket(`ws://${window.location.host}/ws/realtime/`);
+
+    const protocol = window.location.protocol === 'https' ? 'wss' : 'ws';
+    const socketUrl = `${protocol}://${window.location.host}/ws/realtime/`;
+    socket = new WebSocket(socketUrl);
 
     socket.onopen = () => {
         statusDiv.textContent = 'Status: Connected. Start speaking!';
