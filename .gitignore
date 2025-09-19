@@ -1,0 +1,25 @@
+# Virtual Environment
+venv/
+/venv/
+.venv/
+env/
+.env/
+
+# Secret Files - VERY IMPORTANT
+.env
+gcloud-credentials.json
+
+# Django specific
+*.log
+db.sqlite3
+/staticfiles/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
