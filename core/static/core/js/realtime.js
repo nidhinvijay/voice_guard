@@ -16,7 +16,7 @@ startBtn.addEventListener('click', () => {
     statusDiv.textContent = 'Status: Connecting...';
 
 
-    const protocol = window.location.protocol === 'https' ? 'wss' : 'ws';
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const socketUrl = `${protocol}://${window.location.host}/ws/realtime/`;
     socket = new WebSocket(socketUrl);
 
