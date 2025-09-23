@@ -24,3 +24,9 @@ def get_token(request):
 def reports_page(request):
     reports = AnalysisReport.objects.all()
     return render(request, 'core/reports.html', {'reports': reports})
+
+def login_page(request):
+    return render(request, 'core/login.html')
+
+def realtime_call_page(request):
+    return render(request, 'core/realtime_call.html')
