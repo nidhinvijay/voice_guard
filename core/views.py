@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from . import production_services
 from .models import AnalysisReport
+import os
 
 def home(request):
     """
@@ -26,7 +27,18 @@ def reports_page(request):
     return render(request, 'core/reports.html', {'reports': reports})
 
 def login_page(request):
-    return render(request, 'core/login.html')
+    return render(request, 'core/login.html', {'firebase_config': get_firebase_config()})
 
 def realtime_call_page(request):
-    return render(request, 'core/realtime_call.html')
+    return render(request, 'core/realtime_call.html', {'firebase_config': get_firebase_config()})
+
+def get_firebase_config():
+    """Helper function to get Firebase config from environment."""
+    return {
+        "apiKey": os.getenv("FIREBASE_API_KEY"),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+        "appId": os.getenv("FIREBASE_APP_ID"),
+    }
