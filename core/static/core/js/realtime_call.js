@@ -13,6 +13,8 @@ const joinBtn = document.getElementById('joinBtn');
 const callIdInput = document.getElementById('callIdInput');
 const localTranscriptDiv = document.getElementById('local-transcript');
 const alertsContainer = document.getElementById('alerts-container');
+const initialControls = document.getElementById('initial-controls');
+const callStatus = document.getElementById('call-status');
 
 let pc;
 let localStream;
@@ -35,7 +37,8 @@ createBtn.onclick = async () => {
     await set(newCallRef, { offer });
 
     callIdInput.value = callId;
-    document.getElementById('controls').innerHTML = `<p class="alert alert-info">Share this Call ID to invite someone: <strong>${callId}</strong></p>`;
+    initialControls.style.display = 'none';
+    callStatus.innerHTML = `<p class="alert alert-info">Share this Call ID to invite someone: <strong>${callId}</strong></p>`;
 
     onValue(ref(db, `calls/${callId}/answer`), (snapshot) => {
         if (snapshot.exists() && !pc.currentRemoteDescription) {
@@ -67,7 +70,6 @@ joinBtn.onclick = async () => {
         await pc.setRemoteDescription(new RTCSessionDescription(callSnapshot.val().offer));
         const answerDescription = await pc.createAnswer();
         await pc.setLocalDescription(answerDescription);
-        
         const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
         await set(ref(db, `calls/${callId}/answer`), answer);
 
@@ -78,7 +80,8 @@ joinBtn.onclick = async () => {
             });
         });
 
-        document.getElementById('controls').innerHTML = `<p class="alert alert-success">Successfully joined call!</p>`;
+        initialControls.style.display = 'none';
+        callStatus.innerHTML = `<p class="alert alert-success">Successfully joined call!</p>`;
     } else {
         alert('Call ID not found.');
     }
@@ -101,14 +104,11 @@ async function setupCall() {
     setupModeration();
 }
 
-
 function setupModeration() {
-    // 1. Get the selected language from the dropdown
     const languageSelect = document.getElementById('language-select');
     const selectedLang = languageSelect.value;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    // 2. Add the language code to the WebSocket URL
     const moderationUrl = `${protocol}://${window.location.host}/ws/realtime/?language=${selectedLang}`;
     moderationSocket = new WebSocket(moderationUrl);
 
@@ -119,17 +119,6 @@ function setupModeration() {
         }
     };
     mediaRecorder.start(250);
-    
-    moderationSocket.onopen = () => {
-        console.log("✅ Moderation WebSocket successfully connected!");
-        const mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm; codecs=opus' });
-        mediaRecorder.ondataavailable = event => {
-            if (event.data.size > 0 && moderationSocket.readyState === WebSocket.OPEN) {
-                moderationSocket.send(event.data);
-            }
-        };
-        mediaRecorder.start(250);
-    };
 
     moderationSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -141,7 +130,6 @@ function setupModeration() {
         }
     };
 }
-
 
 function handleModeration(feedback) {
     if (feedback.status === 'offensive') {
