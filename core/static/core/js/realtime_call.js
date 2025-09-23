@@ -1,6 +1,10 @@
 // core/static/core/js/realtime_call.js
-import { db } from './firebase-init.js';
+import { auth, db } from './firebase-init.js';
 import { ref, set, get, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const servers = {
+    iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
+};
 
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -10,52 +14,46 @@ const callIdInput = document.getElementById('callIdInput');
 const localTranscriptDiv = document.getElementById('local-transcript');
 const alertsContainer = document.getElementById('alerts-container');
 
-// --- THE FIX IS HERE: Declare these variables in the global scope ---
 let pc;
 let localStream;
 let remoteStream;
 let moderationSocket;
-// --------------------------------------------------------------------
-
-const servers = {
-    iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
-};
 
 // --- Main Functions ---
 
 createBtn.onclick = async () => {
     await setupCall();
     
+    // Use Firebase push to get a unique, reliable Call ID
     const callDocRef = ref(db, 'calls');
-    const newCallRef = push(callDocRef); // Create a new unique ID for the call
-    
+    const newCallRef = push(callDocRef);
+    const callId = newCallRef.key;
+
+    // Set up ICE candidate listener
     pc.onicecandidate = event => {
-        event.candidate && set(push(ref(db, `calls/${newCallRef.key}/offerCandidates`)), event.candidate.toJSON());
+        event.candidate && set(push(ref(db, `calls/${callId}/offerCandidates`)), event.candidate.toJSON());
     };
 
+    // Create offer
     const offerDescription = await pc.createOffer();
     await pc.setLocalDescription(offerDescription);
-
-    const offer = {
-        sdp: offerDescription.sdp,
-        type: offerDescription.type,
-    };
+    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
     await set(newCallRef, { offer });
 
-    callIdInput.value = newCallRef.key;
-    document.getElementById('controls').innerHTML = `<p>Share this call ID: <strong>${newCallRef.key}</strong></p>`;
+    callIdInput.value = callId;
+    document.getElementById('controls').innerHTML = `<p class="alert alert-info">Share this Call ID to invite someone: <strong>${callId}</strong></p>`;
 
-    onValue(ref(db, `calls/${newCallRef.key}/answer`), (snapshot) => {
+    // Listen for the answer
+    onValue(ref(db, `calls/${callId}/answer`), (snapshot) => {
         if (snapshot.exists() && !pc.currentRemoteDescription) {
-            const answerDescription = new RTCSessionDescription(snapshot.val());
-            pc.setRemoteDescription(answerDescription);
+            pc.setRemoteDescription(new RTCSessionDescription(snapshot.val()));
         }
     });
 
-    onValue(ref(db, `calls/${newCallRef.key}/answerCandidates`), (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
-            const candidate = new RTCIceCandidate(childSnapshot.val());
-            pc.addIceCandidate(candidate);
+    // Listen for answerer's ICE candidates
+    onValue(ref(db, `calls/${callId}/answerCandidates`), (snapshot) => {
+        snapshot.forEach(childSnapshot => {
+            pc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
         });
     });
 };
@@ -73,26 +71,23 @@ joinBtn.onclick = async () => {
 
     const callSnapshot = await get(callRef);
     if (callSnapshot.exists()) {
-        const offerDescription = callSnapshot.val().offer;
-        await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
+        await pc.setRemoteDescription(new RTCSessionDescription(callSnapshot.val().offer));
         const answerDescription = await pc.createAnswer();
         await pc.setLocalDescription(answerDescription);
-
-        const answer = {
-            type: answerDescription.type,
-            sdp: answerDescription.sdp,
-        };
+        
+        const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
         await set(ref(db, `calls/${callId}/answer`), answer);
 
+        // Listen for offerer's ICE candidates
         onValue(ref(db, `calls/${callId}/offerCandidates`), (snapshot) => {
-            snapshot.forEach((childSnapshot) => {
-                const candidate = new RTCIceCandidate(childSnapshot.val());
-                pc.addIceCandidate(candidate);
+            snapshot.forEach(childSnapshot => {
+                pc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
             });
         });
 
-        document.getElementById('controls').innerHTML = `<p>Successfully joined call!</p>`;
+        document.getElementById('controls').innerHTML = `<p class="alert alert-success">Successfully joined call!</p>`;
+    } else {
+        alert('Call ID not found.');
     }
 };
 
@@ -119,7 +114,6 @@ async function setupCall() {
 }
 
 function setupModeration() {
-    // This logic remains the same as our other real-time page
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     moderationSocket = new WebSocket(`${protocol}://${window.location.host}/ws/realtime/`);
 
@@ -134,7 +128,8 @@ function setupModeration() {
     moderationSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'transcript') {
-            localTranscriptDiv.textContent = data.is_final ? data.transcript : `(Speaking: ${data.transcript})`;
+            const transcriptText = data.is_final ? data.transcript : `(Speaking: ${data.transcript})`;
+            localTranscriptDiv.textContent = transcriptText;
         } else if (data.type === 'moderation') {
             handleModeration(data.feedback);
         }
