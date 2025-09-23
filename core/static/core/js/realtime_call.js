@@ -1,4 +1,3 @@
-// core/static/core/js/realtime_call.js
 import { db } from './firebase-init.js';
 import { ref, set, get, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -11,6 +10,7 @@ const remoteVideo = document.getElementById('remoteVideo');
 const createBtn = document.getElementById('createBtn');
 const joinBtn = document.getElementById('joinBtn');
 const callIdInput = document.getElementById('callIdInput');
+const languageSelect = document.getElementById('language-select');
 const localTranscriptDiv = document.getElementById('local-transcript');
 const alertsContainer = document.getElementById('alerts-container');
 const initialControls = document.getElementById('initial-controls');
@@ -21,7 +21,9 @@ let localStream;
 let moderationSocket;
 
 createBtn.onclick = async () => {
-    await setupCall();
+    // 1. Get the selected language right when the button is clicked
+    const selectedLang = languageSelect.value;
+    await setupCall(selectedLang);
     
     const callDocRef = ref(db, 'calls');
     const newCallRef = push(callDocRef);
@@ -58,7 +60,9 @@ joinBtn.onclick = async () => {
     const callId = callIdInput.value;
     if (!callId) return alert('Please enter a Call ID.');
 
-    await setupCall();
+    // 1. Get the selected language right when the button is clicked
+    const selectedLang = languageSelect.value;
+    await setupCall(selectedLang); // 2.
     const callRef = ref(db, `calls/${callId}`);
 
     pc.onicecandidate = event => {
@@ -87,7 +91,7 @@ joinBtn.onclick = async () => {
     }
 };
 
-async function setupCall() {
+async function setupCall(lang) {
     localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
     localVideo.srcObject = localStream;
 
@@ -101,15 +105,13 @@ async function setupCall() {
         remoteVideo.srcObject = event.streams[0];
     };
     
-    setupModeration();
-}
+    setupModeration(lang); // 4. Pass the language to the moderation setup
+}   
 
-function setupModeration() {
-    const languageSelect = document.getElementById('language-select');
-    const selectedLang = languageSelect.value;
-
+function setupModeration(lang) {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const moderationUrl = `${protocol}://${window.location.host}/ws/realtime/?language=${selectedLang}`;
+    // 6. Use the language parameter in the URL
+    const moderationUrl = `${protocol}://${window.location.host}/ws/realtime/?language=${lang}`;
     moderationSocket = new WebSocket(moderationUrl);
 
     const mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm; codecs=opus' });
