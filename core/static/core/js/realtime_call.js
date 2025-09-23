@@ -103,7 +103,7 @@ async function setupCall() {
     localVideo.srcObject = localStream;
     remoteVideo.srcObject = remoteStream;
 
-    pc = new RTCIceConnection(servers);
+    pc = new RTCPeerConnection(servers);
 
     localStream.getTracks().forEach(track => {
         pc.addTrack(track, localStream);
