@@ -45,6 +45,7 @@ class RealtimeConsumer(AsyncWebsocketConsumer):
                 sample_rate_hertz=48000,
                 language_code="en-US",
                 enable_automatic_punctuation=True,
+                model="telephony"
             )
             streaming_config = speech.StreamingRecognitionConfig(
                 config=config,
