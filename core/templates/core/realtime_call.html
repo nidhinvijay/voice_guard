@@ -9,6 +9,16 @@
 <body>
 <div class="container my-5">
     <h1 class="text-center">🎙️ VoiceGuard Call</h1>
+    <div class="mx-auto mb-4" style="max-width: 200px;">
+        <label for="language-select" class="form-label">Select Language:</label>
+        <select class="form-select" id="language-select">
+            <option value="en-US">English</option>
+            <option value="ml-IN">മലയാളം (Malayalam)</option>
+        </select>
+    </div>
+
+    <div class="text-center my-4" id="controls">
+        </div>
     <div class="text-center my-4" id="controls">
         <div class="input-group mx-auto" style="max-width: 400px;">
             <input type="text" id="callIdInput" class="form-control" placeholder="Enter Call ID to join">

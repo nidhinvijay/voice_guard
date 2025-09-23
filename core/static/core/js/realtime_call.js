@@ -1,6 +1,6 @@
 // core/static/core/js/realtime_call.js
 import { db } from './firebase-init.js';
-import { ref, set, get, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { ref, set, get, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const servers = {
     iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
@@ -17,8 +17,6 @@ const alertsContainer = document.getElementById('alerts-container');
 let pc;
 let localStream;
 let moderationSocket;
-
-// --- Main Functions ---
 
 createBtn.onclick = async () => {
     await setupCall();
@@ -37,7 +35,7 @@ createBtn.onclick = async () => {
     await set(newCallRef, { offer });
 
     callIdInput.value = callId;
-    document.getElementById('controls').innerHTML = `<p class="alert alert-info">Share this call ID to invite someone: <strong>${callId}</strong></p>`;
+    document.getElementById('controls').innerHTML = `<p class="alert alert-info">Share this Call ID to invite someone: <strong>${callId}</strong></p>`;
 
     onValue(ref(db, `calls/${callId}/answer`), (snapshot) => {
         if (snapshot.exists() && !pc.currentRemoteDescription) {
@@ -46,7 +44,7 @@ createBtn.onclick = async () => {
     });
 
     onValue(ref(db, `calls/${callId}/answerCandidates`), (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
+        snapshot.forEach(childSnapshot => {
             const candidate = new RTCIceCandidate(childSnapshot.val());
             pc.addIceCandidate(candidate);
         });
@@ -74,7 +72,7 @@ joinBtn.onclick = async () => {
         await set(ref(db, `calls/${callId}/answer`), answer);
 
         onValue(ref(db, `calls/${callId}/offerCandidates`), (snapshot) => {
-            snapshot.forEach((childSnapshot) => {
+            snapshot.forEach(childSnapshot => {
                 const candidate = new RTCIceCandidate(childSnapshot.val());
                 pc.addIceCandidate(candidate);
             });
@@ -96,7 +94,6 @@ async function setupCall() {
         pc.addTrack(track, localStream);
     });
 
-    // THIS IS THE FIX: Directly assign the incoming stream to the remote video element.
     pc.ontrack = event => {
         remoteVideo.srcObject = event.streams[0];
     };
@@ -104,10 +101,16 @@ async function setupCall() {
     setupModeration();
 }
 
+
 function setupModeration() {
-    // This logic remains the same
+    // 1. Get the selected language from the dropdown
+    const languageSelect = document.getElementById('language-select');
+    const selectedLang = languageSelect.value;
+
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    moderationSocket = new WebSocket(`${protocol}://${window.location.host}/ws/realtime/`);
+    // 2. Add the language code to the WebSocket URL
+    const moderationUrl = `${protocol}://${window.location.host}/ws/realtime/?language=${selectedLang}`;
+    moderationSocket = new WebSocket(moderationUrl);
 
     const mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm; codecs=opus' });
     mediaRecorder.ondataavailable = event => {
@@ -116,6 +119,17 @@ function setupModeration() {
         }
     };
     mediaRecorder.start(250);
+    
+    moderationSocket.onopen = () => {
+        console.log("✅ Moderation WebSocket successfully connected!");
+        const mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm; codecs=opus' });
+        mediaRecorder.ondataavailable = event => {
+            if (event.data.size > 0 && moderationSocket.readyState === WebSocket.OPEN) {
+                moderationSocket.send(event.data);
+            }
+        };
+        mediaRecorder.start(250);
+    };
 
     moderationSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -127,6 +141,7 @@ function setupModeration() {
         }
     };
 }
+
 
 function handleModeration(feedback) {
     if (feedback.status === 'offensive') {

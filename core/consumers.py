@@ -6,13 +6,21 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from google.cloud import speech
 from . import production_services
+from urllib.parse import parse_qs
 
 class RealtimeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
-        print("Real-time socket connected.")
+
+        # 1. Read the language code from the connection's query string
+        query_string = self.scope.get('query_string', b'').decode()
+        params = parse_qs(query_string)
+        self.language_code = params.get('language', ['en-US'])[0]
+
+        print(f"Real-time socket connected with language: {self.language_code}")
+        
         self.audio_queue = asyncio.Queue()
-        self.transcription_task_started = False # Add this flag
+        self.transcription_task_started = False
 
     async def disconnect(self, close_code):
         print(f"Real-time socket disconnected with code: {close_code}")
