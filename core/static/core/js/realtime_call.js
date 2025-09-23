@@ -1,6 +1,6 @@
 // core/static/core/js/realtime_call.js
-import { auth, db } from './firebase-init.js';
-import { ref, set, get, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { db } from './firebase-init.js';
+import { ref, set, get, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const servers = {
     iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
@@ -16,44 +16,39 @@ const alertsContainer = document.getElementById('alerts-container');
 
 let pc;
 let localStream;
-let remoteStream;
 let moderationSocket;
 
 // --- Main Functions ---
 
 createBtn.onclick = async () => {
-    await setupCall();
+    setupCall();
     
-    // Use Firebase push to get a unique, reliable Call ID
     const callDocRef = ref(db, 'calls');
     const newCallRef = push(callDocRef);
     const callId = newCallRef.key;
 
-    // Set up ICE candidate listener
     pc.onicecandidate = event => {
         event.candidate && set(push(ref(db, `calls/${callId}/offerCandidates`)), event.candidate.toJSON());
     };
 
-    // Create offer
     const offerDescription = await pc.createOffer();
     await pc.setLocalDescription(offerDescription);
     const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
     await set(newCallRef, { offer });
 
     callIdInput.value = callId;
-    document.getElementById('controls').innerHTML = `<p class="alert alert-info">Share this Call ID to invite someone: <strong>${callId}</strong></p>`;
+    document.getElementById('controls').innerHTML = `<p class="alert alert-info">Share this call ID to invite someone: <strong>${callId}</strong></p>`;
 
-    // Listen for the answer
     onValue(ref(db, `calls/${callId}/answer`), (snapshot) => {
         if (snapshot.exists() && !pc.currentRemoteDescription) {
             pc.setRemoteDescription(new RTCSessionDescription(snapshot.val()));
         }
     });
 
-    // Listen for answerer's ICE candidates
     onValue(ref(db, `calls/${callId}/answerCandidates`), (snapshot) => {
-        snapshot.forEach(childSnapshot => {
-            pc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
+        snapshot.forEach((childSnapshot) => {
+            const candidate = new RTCIceCandidate(childSnapshot.val());
+            pc.addIceCandidate(candidate);
         });
     });
 };
@@ -62,7 +57,7 @@ joinBtn.onclick = async () => {
     const callId = callIdInput.value;
     if (!callId) return alert('Please enter a Call ID.');
 
-    await setupCall();
+    setupCall();
     const callRef = ref(db, `calls/${callId}`);
 
     pc.onicecandidate = event => {
@@ -78,10 +73,10 @@ joinBtn.onclick = async () => {
         const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
         await set(ref(db, `calls/${callId}/answer`), answer);
 
-        // Listen for offerer's ICE candidates
         onValue(ref(db, `calls/${callId}/offerCandidates`), (snapshot) => {
-            snapshot.forEach(childSnapshot => {
-                pc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
+            snapshot.forEach((childSnapshot) => {
+                const candidate = new RTCIceCandidate(childSnapshot.val());
+                pc.addIceCandidate(candidate);
             });
         });
 
@@ -93,10 +88,7 @@ joinBtn.onclick = async () => {
 
 async function setupCall() {
     localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-    remoteStream = new MediaStream();
-    
     localVideo.srcObject = localStream;
-    remoteVideo.srcObject = remoteStream;
 
     pc = new RTCPeerConnection(servers);
 
@@ -104,16 +96,16 @@ async function setupCall() {
         pc.addTrack(track, localStream);
     });
 
+    // THIS IS THE FIX: Directly assign the incoming stream to the remote video element.
     pc.ontrack = event => {
-        event.streams[0].getTracks().forEach(track => {
-            remoteStream.addTrack(track);
-        });
+        remoteVideo.srcObject = event.streams[0];
     };
     
     setupModeration();
 }
 
 function setupModeration() {
+    // This logic remains the same
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     moderationSocket = new WebSocket(`${protocol}://${window.location.host}/ws/realtime/`);
 
