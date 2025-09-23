@@ -32,8 +32,10 @@
     <div id="alerts-container" class="mt-4"></div>
 </div>
 
-<script>
-    const firebaseConfig = {{ firebase_config|safe }};
+{{ firebase_config|json_script:"firebase-config" }}
+<script type="module">
+    const firebaseConfig = JSON.parse(document.getElementById('firebase-config').textContent);
+    window.firebaseConfig = firebaseConfig;
 </script>
 <script type="module" src="{% static 'core/js/firebase-init.js' %}"></script>
 <script type="module" src="{% static 'core/js/realtime_call.js' %}"></script>
