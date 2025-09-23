@@ -40,11 +40,13 @@ class RealtimeConsumer(AsyncWebsocketConsumer):
         """Streams audio to Google, gets transcript, then sends to moderation."""
         try:
             client = speech.SpeechAsyncClient()
+            enable_punctuation = self.language_code == 'en-US'
+
             config = speech.RecognitionConfig(
                 encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
                 sample_rate_hertz=48000,
                 language_code="en-US",
-                enable_automatic_punctuation=True,
+                enable_automatic_punctuation=enable_punctuation,
                 model="telephony"
             )
             streaming_config = speech.StreamingRecognitionConfig(
