@@ -21,7 +21,7 @@ let moderationSocket;
 // --- Main Functions ---
 
 createBtn.onclick = async () => {
-    setupCall();
+    await setupCall();
     
     const callDocRef = ref(db, 'calls');
     const newCallRef = push(callDocRef);
@@ -57,7 +57,7 @@ joinBtn.onclick = async () => {
     const callId = callIdInput.value;
     if (!callId) return alert('Please enter a Call ID.');
 
-    setupCall();
+    await setupCall();
     const callRef = ref(db, `calls/${callId}`);
 
     pc.onicecandidate = event => {
