@@ -1,14 +1,21 @@
 // core/static/core/js/auth.js
 
-// 1. Import the auth service
-import { auth } from './firebase-init.js';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// --- 1. FIREBASE INITIALIZATION (MOVED HERE) ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// The firebaseConfig object is now defined globally in the HTML template by Django.
+// Make sure this is still in your login.html template!
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+
+// --- 2. THE REST OF YOUR AUTH LOGIC (UNCHANGED) ---
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const errorMessage = document.getElementById('error-message');
 
-// Toggle between login and signup views (this part is unchanged)
+// Toggle between login and signup views
 document.getElementById('show-signup').addEventListener('click', () => {
     document.getElementById('login-view').style.display = 'none';
     document.getElementById('signup-view').style.display = 'block';
@@ -23,8 +30,7 @@ signupForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
-
-    // 2. Use the new function names
+    
     createUserWithEmailAndPassword(auth, email, password)
         .then(userCredential => {
             alert('Account created! Please log in.');
@@ -42,7 +48,6 @@ loginForm.addEventListener('submit', (e) => {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
-    // 3. Use the new function names
     signInWithEmailAndPassword(auth, email, password)
         .then(userCredential => {
             window.location.href = '/'; 
