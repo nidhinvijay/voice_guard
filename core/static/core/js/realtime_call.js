@@ -21,7 +21,6 @@ let localStream;
 let moderationSocket;
 
 createBtn.onclick = async () => {
-    // 1. Get the selected language right when the button is clicked
     const selectedLang = languageSelect.value;
     await setupCall(selectedLang);
     
@@ -60,9 +59,9 @@ joinBtn.onclick = async () => {
     const callId = callIdInput.value;
     if (!callId) return alert('Please enter a Call ID.');
 
-    // 1. Get the selected language right when the button is clicked
     const selectedLang = languageSelect.value;
-    await setupCall(selectedLang); // 2.
+    await setupCall(selectedLang);
+    
     const callRef = ref(db, `calls/${callId}`);
 
     pc.onicecandidate = event => {
@@ -105,22 +104,25 @@ async function setupCall(lang) {
         remoteVideo.srcObject = event.streams[0];
     };
     
-    setupModeration(lang); // 4. Pass the language to the moderation setup
-}   
+    setupModeration(lang);
+}
 
 function setupModeration(lang) {
+    console.log(`Attempting to connect moderation WebSocket with language: ${lang}`);
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    // 6. Use the language parameter in the URL
     const moderationUrl = `${protocol}://${window.location.host}/ws/realtime/?language=${lang}`;
     moderationSocket = new WebSocket(moderationUrl);
 
-    const mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm; codecs=opus' });
-    mediaRecorder.ondataavailable = event => {
-        if (event.data.size > 0 && moderationSocket.readyState === WebSocket.OPEN) {
-            moderationSocket.send(event.data);
-        }
+    moderationSocket.onopen = () => {
+        console.log("✅ Moderation WebSocket successfully connected!");
+        const mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm; codecs=opus' });
+        mediaRecorder.ondataavailable = event => {
+            if (event.data.size > 0 && moderationSocket.readyState === WebSocket.OPEN) {
+                moderationSocket.send(event.data);
+            }
+        };
+        mediaRecorder.start(250);
     };
-    mediaRecorder.start(250);
 
     moderationSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
