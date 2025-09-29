@@ -61,7 +61,7 @@ def get_moderation_feedback(text):
         # BREADCRUMB 2: The Perspective API has responded.
         print(f"  <-- ✅ Perspective API responded with score: {toxicity_score:.2f}")
 
-        if toxicity_score > 0.4:
+        if toxicity_score > 0.3:
             status = 'offensive'
             suggestion = get_rephrased_suggestion_from_groq(text)
         else:
