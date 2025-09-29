@@ -1,6 +1,8 @@
+# core/routing.py
 from django.urls import re_path
 from . import consumers
 
 websocket_urlpatterns = [
-    re_path(r'ws/realtime/$', consumers.RealtimeConsumer.as_asgi()),
+    # This pattern correctly captures the call_id, including hyphens
+    re_path(r'ws/realtime/(?P<call_id>[^/]+)/$', consumers.RealtimeConsumer.as_asgi()),
 ]
