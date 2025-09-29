@@ -5,31 +5,39 @@ from googleapiclient import discovery
 from dotenv import load_dotenv
 from google.cloud import speech 
 from pydub import AudioSegment
+from groq import Groq
 import io
 
 load_dotenv()
 
 PERSPECTIVE_API_KEY = os.getenv("PERSPECTIVE_API_KEY")
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-def get_rephrased_suggestion_from_gemini(text):
-    """
-    Calls Gemini to rephrase an offensive sentence into a polite one.
-    """
+def get_rephrased_suggestion_from_groq(text):
     try:
-        # BREADCRUMB 3: We are about to call Gemini.
-        print("       L-- 🧠 Calling Gemini API for a suggestion...")
+        print("       L-- ⚡️ Calling Groq API for a suggestion...")
         
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f'The following sentence was flagged as disrespectful: "{text}". Rewrite it into a polite and respectful alternative. Provide only the rewritten phrase.'
-        response = model.generate_content(prompt)
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant. Your task is to rewrite a disrespectful sentence into a polite and respectful alternative. Provide only the rewritten phrase itself, without any extra explanation or introductory text."
+                },
+                {
+                    "role": "user",
+                    "content": text,
+                }
+            ],
+            model="gemma2-9b-it", # A fast and capable model on Groq
+        )
         
-        # BREADCRUMB 4: Gemini has responded.
-        print("      L-- ✅ Gemini API responded successfully.")
-        
-        return response.text.strip()
+        suggestion = chat_completion.choices[0].message.content
+        print("      L-- ✅ Groq API responded successfully.")
+        return suggestion.strip().replace('"', '')
+
     except Exception as e:
-        print(f"      L-- ❌ ERROR calling Gemini for rephrasing: {e}")
+        print(f"      L-- ❌ ERROR calling Groq for rephrasing: {e}")
         return "Could not generate a suggestion."
 
 def get_moderation_feedback(text):
@@ -53,9 +61,9 @@ def get_moderation_feedback(text):
         # BREADCRUMB 2: The Perspective API has responded.
         print(f"  <-- ✅ Perspective API responded with score: {toxicity_score:.2f}")
 
-        if toxicity_score > 0.7:
+        if toxicity_score > 0.4:
             status = 'offensive'
-            suggestion = get_rephrased_suggestion_from_gemini(text)
+            suggestion = get_rephrased_suggestion_from_groq(text)
         else:
             status = 'clean'
             suggestion = ""
