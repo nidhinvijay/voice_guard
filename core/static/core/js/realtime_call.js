@@ -93,9 +93,26 @@ function setupModeration(callId) {
 
 function handleModeration(feedback) {
     if (feedback.status === 'offensive') {
-        const alertEl = document.createElement('div');
-        alertEl.className = 'alert alert-danger';
-        alertEl.innerHTML = `<strong>Original:</strong> "${feedback.original_text}"<br><strong>Suggestion:</strong> ${feedback.suggestion}`;
-        alertsContainer.prepend(alertEl);
+        // 1. Display the visual alert
+        const alertElement = document.createElement('div');
+        alertElement.className = 'alert alert-danger';
+        alertElement.innerHTML = `<strong>Original:</strong> "${feedback.original_text}"<br><strong>Suggestion:</strong> ${feedback.suggestion}`;
+        alertsContainer.prepend(alertElement);
+
+        // 2. Check for and automatically play the TTS audio
+        if (feedback.audio_suggestion) {
+            // Convert the Base64 string back into an audio file
+            const audioData = atob(feedback.audio_suggestion);
+            const audioBytes = new Uint8Array(audioData.length);
+            for (let i = 0; i < audioData.length; i++) {
+                audioBytes[i] = audioData.charCodeAt(i);
+            }
+            const audioBlob = new Blob([audioBytes], { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            // Play the audio automatically
+            const audio = new Audio(audioUrl);
+            audio.play();
+        }
     }
 }

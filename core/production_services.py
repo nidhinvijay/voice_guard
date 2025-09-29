@@ -1,10 +1,12 @@
 # core/production_services.py
 import os
-import google.generativeai as genai
+# import google.generativeai as genai
 from googleapiclient import discovery
 from dotenv import load_dotenv
 from google.cloud import speech 
+import base64
 from pydub import AudioSegment
+from google.cloud import texttospeech
 from groq import Groq
 import io
 
@@ -64,14 +66,16 @@ def get_moderation_feedback(text):
         if toxicity_score > 0.3:
             status = 'offensive'
             suggestion = get_rephrased_suggestion_from_groq(text)
+            audio_suggestion = convert_text_to_speech(suggestion)
         else:
             status = 'clean'
-            suggestion = ""
+            suggestion, audio_suggestion = "", None
 
         return {
             "status": status,
             "suggestion": suggestion,
             "score": f"{toxicity_score:.2f}",
+            "audio_suggestion": audio_suggestion,
             "original_text": text
         }
     except Exception as e:
@@ -129,3 +133,28 @@ def analyze_uploaded_file(audio_file):
     except Exception as e:
         print(f"ERROR in file analysis: {e}")
         return {"status": "error", "message": f"An unexpected error occurred: {e}"}
+    
+
+
+def convert_text_to_speech(text):
+    try:
+        client = texttospeech.TextToSpeechClient()
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3
+        )
+        
+        print("      L-- 🗣️ Calling Google TTS API...")
+        response = client.synthesize_speech(
+            input=synthesis_input, voice=voice, audio_config=audio_config
+        )
+        print("      L-- ✅ Google TTS responded successfully.")
+        
+        # Return audio as a Base64 string to safely send via JSON
+        return base64.b64encode(response.audio_content).decode('utf-8')
+    except Exception as e:
+        print(f"      L-- ❌ ERROR calling Google TTS: {e}")
+        return None
