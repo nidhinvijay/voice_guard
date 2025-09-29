@@ -18,12 +18,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the project code into the container
 COPY . /app/
 
-# Run collectstatic and migrations
+# Run collectstatic (this is part of the build, so it stays here)
 RUN python manage.py collectstatic --noinput
-# RUN python manage.py migrate
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Run the application
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "voiceguard.asgi:application"]
+# THE FIX: Chain the migrate and daphne commands together.
+# This will run every time your server starts.
+CMD python manage.py migrate && daphne -b 0.0.0.0 -p 8000 voiceguard.asgi:application
