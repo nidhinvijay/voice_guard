@@ -20,7 +20,7 @@ COPY . /app/
 
 # Run collectstatic and migrations
 RUN python manage.py collectstatic --noinput
-RUN python manage.py migrate
+# RUN python manage.py migrate
 
 # Expose the port the app runs on
 EXPOSE 8000
