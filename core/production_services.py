@@ -66,7 +66,8 @@ def get_moderation_feedback(text):
         if toxicity_score > 0.3:
             status = 'offensive'
             suggestion = get_rephrased_suggestion_from_groq(text)
-            audio_suggestion = convert_text_to_speech(suggestion)
+            full_audio_text = f"Do not use such language. You can say this instead: {suggestion}"
+            audio_suggestion = convert_text_to_speech(full_audio_text)
         else:
             status = 'clean'
             suggestion, audio_suggestion = "", None
